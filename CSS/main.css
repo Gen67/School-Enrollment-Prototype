@@ -1,4 +1,10 @@
-
+/* ============================================
+   MAIN STYLES — Garcia College of Technology enrollment.
+   Green and light green palette. All colors live in the
+   variables at the top, so the whole theme can change in
+   one place. Sections run from the page itself down to
+   small helpers.
+   ============================================ */
 
 /* ---------- 1. Colors ---------- */
 :root {
@@ -232,62 +238,97 @@ select {
   max-width: 400px;
 }
 
-/* ---------- 8. Progress steps ---------- */
-.steps {
-  display: flex;
-  gap: 0.4rem;
-  overflow-x: auto;   /* scrolls sideways on small screens */
-  padding-bottom: 0.6rem;
-  margin-bottom: 1rem;
+/* ---------- 8. Banner and progress steps ---------- */
+/* Green band with the page title (students only) */
+#banner {
+  background: var(--g7);
+  color: #ffffff;
+  text-align: center;
+  padding: 0.7rem 1rem;
 }
 
-.st {
-  flex: 0 0 auto;
+#banner h1 {
+  margin: 0;
+  font-size: clamp(1.1rem, 3vw, 1.5rem);
+}
+
+#progress {
+  background: var(--card);
+  border-bottom: 1px solid var(--bd);
+}
+
+/* Hide both bands when they are empty (log in page, registrar) */
+#banner:empty,
+#progress:empty {
+  display: none;
+}
+
+/* Numbered circles joined by a line */
+.stepper {
   display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.4rem 0.8rem;
-  border-radius: 99px;
-  background: var(--g1);
-  border: 1px solid var(--bd);
-  font-size: 0.85rem;
+  max-width: 1100px;
+  margin: auto;
+  padding: 1rem 1rem 0.8rem;
+  overflow-x: auto;   /* scrolls sideways on small screens */
+}
+
+.stp {
+  flex: 1 0 96px;
+  position: relative;
+  text-align: center;
+  font-size: 0.82rem;
   font-weight: 700;
   color: var(--mut);
 }
 
-.st b {
+/* The line that reaches back to the previous circle */
+.stp::before {
+  content: "";
+  position: absolute;
+  top: 22px;
+  right: 50%;
+  width: 100%;
+  height: 3px;
+  background: var(--bd);
+}
+
+.stp:first-child::before {
+  display: none;
+}
+
+.dot {
+  position: relative;   /* sits on top of the line */
   display: grid;
   place-items: center;
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 0.4rem;
   border-radius: 50%;
+  border: 3px solid var(--bd);
   background: var(--card);
-  border: 1px solid var(--bd);
+  font-size: 1.1rem;
 }
 
 /* Finished step */
-.st.done {
-  background: var(--g2);
+.stp.done::before,
+.stp.now::before {
+  background: var(--g7);
+}
+
+.stp.done .dot {
+  border-color: var(--g5);
   color: var(--g9);
 }
 
-.st.done b {
-  background: var(--g7);
-  color: #ffffff;
-  border-color: var(--g7);
-}
-
 /* Current step */
-.st.now {
-  background: var(--g9);
-  color: #ffffff;
-  border-color: var(--g9);
+.stp.now {
+  color: var(--tx);
 }
 
-.st.now b {
-  background: var(--g5);
+.stp.now .dot {
+  background: var(--g9);
+  border-color: var(--g9);
   color: #ffffff;
-  border-color: var(--g5);
 }
 
 /* ---------- 9. Program choices ---------- */
@@ -395,7 +436,165 @@ th {
   opacity: 1;
 }
 
-/* ---------- 12. Phones ---------- */
+/* ---------- 12. Form panel and past education ---------- */
+/* Keeps the steps at a comfortable width on big screens */
+.narrow {
+  max-width: 900px;
+  margin: auto;
+}
+
+.form-panel {
+  background: var(--g1);
+}
+
+.form-panel input,
+.form-panel select {
+  background: var(--card);
+}
+
+.section-title {
+  margin-top: 1.2rem;
+}
+
+.edu-row {
+  background: var(--card);
+  border: 1px solid var(--bd);
+  border-radius: 10px;
+  padding: 1rem 1rem 0.2rem;
+  margin-bottom: 0.8rem;
+}
+
+.row.end {
+  justify-content: flex-end;
+}
+
+/* ---------- 13. Registrar dashboard ---------- */
+.dash-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.dash-head h2 {
+  margin-bottom: 0.2em;
+}
+
+.dash-head p {
+  margin: 0;
+}
+
+/* Number cards: as many as fit in a row */
+.stats {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  margin-bottom: 1rem;
+}
+
+.stat {
+  border: 1px solid var(--bd);
+  border-radius: 14px;
+  padding: 1rem;
+}
+
+.stat-total,
+.stat-enrolled {
+  background: var(--g1);
+}
+
+.stat-pending {
+  background: var(--card);
+  border-color: var(--g5);
+}
+
+.stat-verified {
+  background: var(--g2);
+  color: var(--g9);
+}
+
+.stat-fees {
+  background: var(--g9);
+  color: #ffffff;
+}
+
+.stat-value {
+  font: 900 1.7rem Merriweather, serif;
+}
+
+.stat-label {
+  font-weight: 700;
+}
+
+.stat-note {
+  font-size: 0.85rem;
+  margin-bottom: 0.7rem;
+  opacity: 0.8;
+}
+
+.meter {
+  height: 6px;
+  border-radius: 99px;
+  background: var(--bd);
+  overflow: hidden;
+}
+
+.meter-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: var(--g5);
+}
+
+/* Bar charts */
+.charts {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.chart {
+  display: flex;
+  gap: 0.8rem;
+  align-items: flex-end;
+  padding-top: 0.5rem;
+}
+
+.chart-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.chart-well {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  height: 150px;
+}
+
+.chart-bar {
+  width: 100%;
+  min-height: 4px;
+  border-radius: 8px 8px 0 0;
+  background: var(--g5);
+}
+
+.chart-value {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.chart-label {
+  font-size: 0.78rem;
+  color: var(--mut);
+  text-align: center;
+}
+
+/* ---------- 14. Phones ---------- */
 @media (max-width: 760px) {
   .auth {
     grid-template-columns: 1fr;   /* stack the green panel above the form */
@@ -410,11 +609,12 @@ th {
   }
 }
 
-/* ---------- 13. Printing the enrollment slip ---------- */
+/* ---------- 15. Printing the enrollment slip ---------- */
 @media print {
   header,
   .row,
-  .steps,
+  #banner,
+  #progress,
   #toast {
     display: none;
   }

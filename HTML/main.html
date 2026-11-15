@@ -1,20 +1,28 @@
 <!DOCTYPE html>
+<!-- ============================================
+     MAIN PAGE — Garcia College of Technology online enrollment.
+     This file only holds the header and a few empty spaces.
+     Script/main.js fills the spaces with the right page for
+     each step, and CSS/main.css makes it look green and tidy.
+     ============================================ -->
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <!-- Makes the page fit phones, tablets and computers -->
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Garcia College of Technology – Online Enrollment</title>
 
- 
+  <!-- Fonts: Merriweather for headings, Nunito Sans for text -->
   <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@700;900&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="CSS/main.css">
 </head>
 <body>
 
+  <!-- Top bar: school name on the left, user name and log out on the right -->
   <header>
     <div class="bar">
       <div class="brand">
-        
+        <!-- School logo: a graduation cap in a light green circle -->
         <svg width="34" height="34" viewBox="0 0 40 40" aria-hidden="true">
           <circle cx="20" cy="20" r="19" fill="#cdeed8"/>
           <path d="M20 8 4 16l16 8 16-8z" fill="#0f4c2a"/>
@@ -26,14 +34,19 @@
         </span>
       </div>
 
-     
+      <!-- Filled by main.js after someone logs in -->
       <span id="nav"></span>
     </div>
   </header>
 
+  <!-- NEW: green title band and numbered steps (students only, filled by main.js) -->
+  <div id="banner"></div>
+  <div id="progress"></div>
 
+  <!-- The enrollment steps appear here -->
   <main id="app"></main>
 
+  <!-- Short messages such as "Enrollment submitted" appear here -->
   <div id="toast" role="status" aria-live="polite"></div>
 
   <script src="Script/main.js"></script>

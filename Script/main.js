@@ -10,6 +10,8 @@
   const app = document.getElementById('app');
   const nav = document.getElementById('nav');
   const toastBox = document.getElementById('toast');
+  const banner = document.getElementById('banner');
+  const progress = document.getElementById('progress');
 
   const STORAGE_KEY = 'gct_enroll_v2';
   const PER_UNIT = 650;
@@ -32,9 +34,10 @@
     ['mobile', 'Mobile number', 'tel'],
     ['address', 'Home address', 'text'],
     ['guardian', 'Parent / guardian name', 'text'],
-    ['guardianMobile', 'Guardian mobile', 'tel'],
-    ['school', 'Last school attended', 'text']
+    ['guardianMobile', 'Guardian mobile', 'tel']
   ];
+
+  const EDU_LEVELS = ['', 'Senior High School', 'Vocational / Technical', 'College (undergraduate)', 'Graduate studies'];
 
   // Each subject is written as: code | title | units | schedule | room
   const PROGRAMS = [
@@ -59,6 +62,7 @@
   let db = null;
   let backup = null;      // used when the browser blocks storage
   let mode = 'login';     // login or signup
+  let educationRows = []; // past schools being edited on the profile step
 
   /* ---------- Small helpers ---------- */
 
@@ -226,30 +230,52 @@
     else if (user.role === 'registrar') view = registrarView();
     else view = studentView(user);
 
+    drawProgress(user);
     app.replaceChildren(view);
     window.scrollTo(0, 0);
   }
 
-  function stepper(current) {
-    const bar = el('nav', 'steps');
-    bar.setAttribute('aria-label', 'Enrollment progress');
+  // School year that is running now, for example 2026–2027
+  function academicYear() {
+    const now = new Date();
+    const start = now.getMonth() >= 5 ? now.getFullYear() : now.getFullYear() - 1;
+    return start + '–' + (start + 1);
+  }
+
+  // Green banner and the row of numbered circles under the header
+  function drawProgress(user) {
+    banner.replaceChildren();
+    progress.replaceChildren();
+    if (!user || user.role !== 'student') return;
+
+    const current = currentEnrollment().step;
+    banner.appendChild(el('h1', '', 'Student Enrollment · A.Y. ' + academicYear()));
+
+    const track = el('nav', 'stepper');
+    track.setAttribute('aria-label', 'Enrollment progress');
+    let currentItem = null;
     STEP_NAMES.forEach(function (name, i) {
       const n = i + 1;
       const state = n < current ? 'done' : (n === current ? 'now' : '');
-      const pill = el('span', 'st ' + state);
-      if (n === current) pill.setAttribute('aria-current', 'step');
-      pill.appendChild(el('b', '', n < current ? '✓' : String(n)));
-      pill.appendChild(document.createTextNode(name));
-      bar.appendChild(pill);
+      const item = el('div', 'stp ' + state);
+      item.appendChild(el('span', 'dot', n < current ? '✓' : String(n)));
+      item.appendChild(el('span', 'stp-name', name));
+      if (n === current) {
+        item.setAttribute('aria-current', 'step');
+        currentItem = item;
+      }
+      track.appendChild(item);
     });
-    return bar;
+    progress.appendChild(track);
+
+    // On a phone, scroll the row so the current step is visible
+    if (currentItem) currentItem.scrollIntoView({ inline: 'center', block: 'nearest' });
   }
 
   function studentView(user) {
     const enrollment = currentEnrollment();
     const steps = { 2: profileStep, 3: programStep, 4: subjectsStep, 5: documentsStep, 6: submitStep, 7: verificationStep, 8: paymentStep, 9: confirmationStep };
-    const page = el('div');
-    page.appendChild(stepper(enrollment.step));
+    const page = el('div', 'narrow');
     page.appendChild(steps[enrollment.step](user, enrollment));
     return page;
   }
@@ -332,7 +358,9 @@
 
   function profileStep(user) {
     const saved = db.profiles[user.id] || {};
-    const card = el('div', 'card');
+    educationRows = saved.education || [{}];
+
+    const card = el('div', 'card form-panel');
     card.appendChild(el('h2', '', 'Complete your profile'));
 
     const form = el('div', 'grid');
@@ -343,6 +371,19 @@
     form.appendChild(choice('Student type', 'type', ['New student', 'Transferee'], saved.type));
     card.appendChild(form);
 
+    // Past education: one box per school, with an "Add more" button
+    card.appendChild(el('h3', 'section-title', 'Past education'));
+    card.appendChild(el('p', 'mut small', 'List your schools in order, starting with the earliest.'));
+    const list = el('div');
+    drawEducation(list);
+    card.appendChild(list);
+    card.appendChild(el('div', 'row end'));
+    card.lastChild.appendChild(button('Add more', function () {
+      educationRows = readEducation();
+      educationRows.push({});
+      drawEducation(list);
+    }));
+
     const error = el('p', 'err');
     error.id = 'error';
     card.appendChild(error);
@@ -350,14 +391,47 @@
     return card;
   }
 
+  function drawEducation(list) {
+    list.replaceChildren();
+    educationRows.forEach(function (row, index) {
+      const box = el('div', 'edu-row');
+      const grid = el('div', 'grid');
+      grid.appendChild(field('School name', 'text', 'edu-name-' + index, row.name));
+      grid.appendChild(choice('Level', 'edu-level-' + index, EDU_LEVELS, row.level));
+      grid.appendChild(field('Start date', 'date', 'edu-start-' + index, row.start));
+      grid.appendChild(field('End date', 'date', 'edu-end-' + index, row.end));
+      box.appendChild(grid);
+
+      // The first school cannot be removed, so the list is never empty
+      if (index > 0) {
+        box.appendChild(button('Remove', function () {
+          educationRows = readEducation();
+          educationRows.splice(index, 1);
+          drawEducation(list);
+        }, 'alt sm'));
+        box.lastChild.style.marginBottom = '1rem';
+      }
+      list.appendChild(box);
+    });
+  }
+
+  // Reads what the student typed in every school box
+  function readEducation() {
+    return educationRows.map(function (row, i) {
+      return { name: val('edu-name-' + i), level: val('edu-level-' + i), start: val('edu-start-' + i), end: val('edu-end-' + i) };
+    });
+  }
+
   function saveProfile() {
     const profile = {};
     PROFILE_FIELDS.forEach(function (f) { profile[f[0]] = val(f[0]); });
     profile.sex = val('sex');
     profile.type = val('type');
+    profile.education = readEducation();
 
-    const missing = Object.keys(profile).some(function (key) { return !profile[key]; });
-    if (missing) return showError('Please fill in every field.');
+    const missing = Object.keys(profile).some(function (key) { return key !== 'education' && !profile[key]; });
+    const schoolsDone = profile.education.every(function (row) { return row.name && row.level; });
+    if (missing || !schoolsDone) return showError('Please fill in every field, including the name and level of each school.');
 
     db.profiles[db.session] = profile;
     goToStep(3);
@@ -562,8 +636,103 @@
   /* ---------- Registrar ---------- */
 
   function registrarView() {
+    const students = db.users.filter(function (u) { return u.role === 'student'; });
+    const enrollments = students.map(function (u) { return db.enrollments[u.id]; });
+
+    // How many enrollments are in each status
+    function countOf(status) {
+      return enrollments.filter(function (e) { return e.status === status; }).length;
+    }
+    const total = students.length;
+    const pending = countOf('submitted');
+    const returned = countOf('returned');
+    const verified = countOf('verified');
+    const enrolled = countOf('enrolled');
+    const draft = total - pending - returned - verified - enrolled;
+    const fees = enrollments.reduce(function (sum, e) { return sum + (e.payment ? e.payment.amount : 0); }, 0);
+
+    // Percent of all applicants, for the small progress bars
+    function share(count) { return total ? Math.round(count / total * 100) : 0; }
+
+    const page = el('div');
+
+    // Title with today's date and time
+    const now = new Date();
+    const head = el('div', 'card dash-head');
+    const title = el('div');
+    title.appendChild(el('h2', '', 'Registrar Dashboard'));
+    title.appendChild(el('p', 'mut', 'Welcome back! Here is what is happening with enrollment today.'));
+    title.appendChild(el('p', 'mut small', now.toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) + ' · ' + now.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' })));
+    head.appendChild(title);
+    head.appendChild(button('Refresh', render, 'alt'));
+    page.appendChild(head);
+
+    // Number cards
+    page.appendChild(add(el('div', 'stats'), [
+      statCard('total', String(total), 'Total applicants', 'Created an account', total ? 100 : 0),
+      statCard('pending', String(pending), 'Pending review', 'Needs your attention', share(pending)),
+      statCard('verified', String(verified), 'Verified', 'Waiting for payment', share(verified)),
+      statCard('enrolled', String(enrolled), 'Enrolled', 'Paid and confirmed', share(enrolled)),
+      statCard('fees', peso(fees), 'Fees collected', 'All payments so far', share(enrolled))
+    ]));
+
+    // Two charts side by side
+    page.appendChild(add(el('div', 'charts'), [
+      barChart('Applications by program', 'Students who picked each program', PROGRAMS.map(function (p) {
+        return { label: p.id, value: enrollments.filter(function (e) { return e.program === p.id; }).length };
+      })),
+      barChart('Enrollment progress', 'Where every applicant is right now', [
+        { label: 'In progress', value: draft },
+        { label: 'Pending', value: pending },
+        { label: 'Returned', value: returned },
+        { label: 'Verified', value: verified },
+        { label: 'Enrolled', value: enrolled }
+      ])
+    ]));
+
+    page.appendChild(queueCard());
+    return page;
+  }
+
+  // One number card: big value, label, note and a small progress bar
+  function statCard(tone, value, label, note, percent) {
+    const card = el('div', 'stat stat-' + tone);
+    card.appendChild(el('div', 'stat-value', value));
+    card.appendChild(el('div', 'stat-label', label));
+    card.appendChild(el('div', 'stat-note', note));
+    const meter = el('div', 'meter');
+    const fill = el('div', 'meter-fill');
+    fill.style.width = percent + '%';
+    meter.appendChild(fill);
+    card.appendChild(meter);
+    return card;
+  }
+
+  // Simple bar chart drawn with plain boxes (no chart library needed)
+  function barChart(title, note, items) {
     const card = el('div', 'card');
-    card.appendChild(el('h2', '', 'Registrar: enrollment queue'));
+    card.appendChild(el('h3', '', title));
+    card.appendChild(el('p', 'mut small', note));
+
+    const tallest = Math.max(1, Math.max.apply(null, items.map(function (item) { return item.value; })));
+    const chart = el('div', 'chart');
+    items.forEach(function (item) {
+      const column = el('div', 'chart-col');
+      const bar = el('div', 'chart-bar');
+      bar.style.height = (item.value / tallest * 100) + '%';
+      column.appendChild(el('span', 'chart-value', String(item.value)));
+      column.appendChild(add(el('div', 'chart-well'), [bar]));
+      column.appendChild(el('span', 'chart-label', item.label));
+      chart.appendChild(column);
+    });
+    card.appendChild(chart);
+    return card;
+  }
+
+  // The list of submitted enrollments with Verify and Return buttons
+  function queueCard() {
+    const card = el('div', 'card');
+    card.appendChild(el('h2', '', 'Enrollment queue'));
 
     // Only show students who have already submitted
     const queue = db.users.filter(function (u) {
